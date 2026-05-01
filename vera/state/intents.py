@@ -18,6 +18,15 @@ class IntentClassifier:
         r"do it",
         r"send",
         r"agree",
+        r"book",
+        r"appointment",
+        r"wed",
+        r"thu",
+        r"fri",
+        r"sat",
+        r"sun",
+        r"mon",
+        r"tue",
         r"ha(an)?\b", # Hindi 'Haan'
         r"theek hai", # Hindi 'Theek hai'
         r"chalega"    # Hindi 'Chalega'

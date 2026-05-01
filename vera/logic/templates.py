@@ -15,28 +15,28 @@ class MessageTemplate:
 # Mandatory structure: PROOF + CONTEXT + GAP + ACTION
 TEMPLATES = {
     "CAPTURE_DEMAND": MessageTemplate(
-        body_fmt="{proof} people nearby searched '{service}' today. Your profile views are active but your conversion is {gap_pct}% below peers. Start a {offer} campaign to capture this demand?",
-        cta_fmt="Start {offer} campaign?",
-        template_name="vera_capture_demand_v1"
+        body_fmt="{proof}. Local interest in {service} is up. However, your conversion is {gap_pct}% below peers. Should I launch your {offer} to capture this?",
+        cta_fmt="Launch {offer}?",
+        template_name="vera_capture_demand_v2"
     ),
     "FIX_CONVERSION": MessageTemplate(
         body_fmt="Your listing has {proof} views this month. However, calls are {gap_pct}% lower than similar {category} in {locality}. Add {offer} to your profile to fix this conversion gap?",
         cta_fmt="Add {offer} to profile?",
-        template_name="vera_fix_conversion_v1"
+        template_name="vera_fix_conversion_v2"
     ),
     "REACTIVATE_CUSTOMERS": MessageTemplate(
-        body_fmt="Hi {cx_name}, {mx_name} here. It's been {months} months since your last visit. We have {slots} slots ready for your recall checkup. {offer} included. Reply 1 for {slot1}, 2 for {slot2}.",
+        body_fmt="Hi {cx_name}, {mx_name} here. It's been {months} months since your last visit. We have {slots} ready for your recall checkup. {offer} included. Reply 1 for {slot1}, 2 for {slot2}.",
         cta_fmt="Reply 1 or 2",
-        template_name="merchant_recall_reminder_v1"
+        template_name="merchant_recall_reminder_v2"
     ),
     "BUILD_TRUST": MessageTemplate(
-        body_fmt="{source} update: {proof} reduction in {metric} found for {cohort}. Highly relevant for your practice. Want me to draft a {action} for your patients? — {source_ref}",
+        body_fmt="{source} {metric}: {proof} {metric} required for your {cohort}. This is a critical {source_ref} update. Want me to draft the necessary {action} for your profile?",
         cta_fmt="Draft {action}?",
-        template_name="vera_build_trust_v1"
+        template_name="vera_build_trust_v2"
     ),
     "SEASONAL_PUSH": MessageTemplate(
-        body_fmt="{event} is coming up in {days} days. {proof}% of local {category} usually see a spike in {service}. Should I launch your {offer} special today?",
-        cta_fmt="Launch {offer} special?",
-        template_name="vera_seasonal_v1"
+        body_fmt="{event} is today! Local {category} see a {proof}% spike in {service} during matches. Should I launch your {offer} special now?",
+        cta_fmt="Launch {offer}?",
+        template_name="vera_seasonal_v2"
     )
 }

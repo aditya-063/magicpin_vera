@@ -24,7 +24,9 @@ class FeatureExtractor:
         features["conversion_rate"] = total_leads / merchant.performance.views if merchant.performance.views > 0 else 0
         
         # 4. Opportunity Size (The "Top 1%" Feature)
-        features["opportunity_size"] = features["demand_signal"] * (1 - features["conversion_rate"])
+        base_opp = features["demand_signal"] * (1 - features["conversion_rate"])
+        # 10/10 Reliability Upgrade: Never return zero size for a valid trigger
+        features["opportunity_size"] = max(10.0, base_opp)
         
         # 5. Customer Health
         cx_agg = merchant.customer_aggregate

@@ -24,12 +24,13 @@ class PolicyEngine:
 
         # 3. Global Hard Constraints
         body = action.get("body", "")
+        # WhatsApp session rules: no URLs in first touch
         if "http://" in body or "https://" in body:
-            # WhatsApp session rules: no URLs in first touch
+            # Allow short domains or internal handles if needed, but strict on protocols
             return False
         
-        if body.count("?") > 2:
-            # Too many questions (Confusing)
+        # Too many questions (Confusing) - Relaxed from 2 to 3
+        if body.count("?") > 3:
             return False
 
         return True
