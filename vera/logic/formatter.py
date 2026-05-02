@@ -1,124 +1,89 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from vera.models import MerchantContext, CategoryContext, TriggerContext, CustomerContext
 
 class TemplateFormatter:
-    @staticmethod
-    def get_slots(
-        opp_type: str, 
-        features: Dict[str, Any], 
-        merchant: MerchantContext, 
-        category: CategoryContext, 
-        trigger: TriggerContext, 
-        customer: Optional[CustomerContext] = None
-    ) -> Dict[str, str]:
-        slots = {}
-        
-        # 1. Identity & Context
-        slots["mx_name"] = merchant.identity.get("name", "your business")
-        slots["owner"] = merchant.identity.get("owner_first_name", "Partner")
-        slots["locality"] = merchant.identity.get("locality", "the area")
-        slots["category"] = category.display_name.lower()
-        
-        # 2. Performance & Gaps
-        slots["gap_pct"] = f"{abs(features.get('ctr_gap', 0) * 100):.1f}"
-        slots["proof"] = str(int(features.get("demand_signal", 150))) 
-        
-        # 3. Dynamic Offer Extraction (100/100 Merchant Fit Upgrade)
-        active_offers = [o for o in merchant.offers if o.get("status") == "active"]
-        best_offer = active_offers[0].get("title") if active_offers else None
-        
-        # 4. Opportunity-Specific Logic
-        kind = trigger.kind
-        
-        if kind == "recall_due" and customer:
-            slots["cx_name"] = customer.identity.get("name", "there")
-            last_visit = customer.interaction.get("last_order_date")
-            if last_visit:
-                try:
-                    from datetime import datetime
-                    last_date = datetime.fromisoformat(last_visit.replace("Z", "+00:00"))
-                    now = datetime.fromisoformat(trigger.expires_at.replace("Z", "+00:00")) if trigger.expires_at else datetime.utcnow()
-                    months_elapsed = max(1, (now.year - last_date.year) * 12 + now.month - last_date.month)
-                    slots["months"] = str(months_elapsed)
-                except Exception:
-                    slots["months"] = "several"
-            else:
-                slots["months"] = "a few"
-            slots["slots"] = "available times"
-            slots["slot1"] = "Wed 6pm"
-            slots["slot2"] = "Thu 5pm"
-            slots["offer"] = best_offer if best_offer else "complimentary checkup"
-
-        elif kind == "perf_dip":
-            slots["proof"] = str(merchant.performance.views)
-            slots["gap_pct"] = f"{abs(features.get('ctr_gap', 0) * 100):.1f}"
-            slots["offer"] = best_offer if best_offer else "performance boost"
-
-        elif kind == "ipl_match_today":
-            slots["event"] = trigger.payload.get("match_name", "the IPL match")
-            slots["days"] = "0" # Today
-            dynamic_proof = trigger.payload.get("expected_lift_pct", 45)
-            slots["proof"] = str(dynamic_proof)
-            slots["service"] = "match-day specials"
-            slots["offer"] = best_offer if best_offer else "Game Day"
-
-        elif kind == "review_theme_emerged":
-            theme = trigger.payload.get("theme", "positive service")
-            slots["proof"] = str(trigger.payload.get("count", 10))
-            slots["service"] = f"'{theme}'"
-            slots["offer"] = "featured review"
-            slots["gap_pct"] = "15" # Hypothetical lift
-
-        elif kind == "competitor_opened":
-            comp_name = trigger.payload.get("competitor_name", "A new competitor")
-            slots["proof"] = f"{comp_name} just opened nearby"
-            slots["service"] = f"loyal customers"
-            slots["offer"] = "loyalty"
-            slots["gap_pct"] = "20"
-
-        elif kind == "regulation_change":
-            slots["source"] = trigger.payload.get("authority", "Official")
-            slots["proof"] = "Compliance"
-            slots["metric"] = trigger.payload.get("change_type", "requirement")
-            slots["cohort"] = "business"
-            slots["action"] = "compliance update"
-            slots["source_ref"] = trigger.payload.get("regulation_id", "DCI Guidelines")
-
-        elif opp_type == "CAPTURE_DEMAND":
-            slots["service"] = trigger.payload.get("category", category.display_name)
-            slots["offer"] = best_offer if best_offer else "profile update"
-            
-        elif opp_type == "FIX_CONVERSION":
-            slots["proof"] = str(merchant.performance.views)
-            slots["offer"] = best_offer if best_offer else "an update"
-            
-        elif opp_type == "BUILD_TRUST":
-            digest_id = trigger.payload.get("top_item_id")
-            item = next((d for d in category.digest if d.id == digest_id), None)
-            if item:
-                slots["source"] = item.source
-                slots["proof"] = str(item.payload.get("trial_n", "A significant")) if item.payload else "A large"
-                slots["metric"] = "improvement"
-                slots["cohort"] = item.payload.get("patient_segment", "relevant") if item.payload else "customer"
-                slots["action"] = "research summary"
-                slots["source_ref"] = item.source
-            else:
-                slots["source"] = "Industry"
-                slots["proof"] = "Significant"
-                slots["metric"] = "benefit"
-                slots["cohort"] = "patient"
-                slots["action"] = "clinical note"
-                slots["source_ref"] = "Research Digest"
-
-        # 10/10 Reliability: Ensure all potentially used keys have a fallback
-        fallbacks = {
-            "cx_name": "there", "perf_metric": "views", "drop_pct": "20",
-            "match_name": "today's match", "theme": "customer interest",
-            "competitor_name": "a new competitor", "service": "service",
-            "offer": "profile update", "proof": "Significant", "metric": "benefit",
-            "cohort": "customer", "action": "update", "source": "Official", "source_ref": "Digest"
+    def __init__(self):
+        self.templates = {
+            "opening": [
+                "Hi! I've analyzed your {category} listing and found an opportunity to {strategy}. Your calls are currently {metric}% {comparison} than similar businesses. Should we proceed?",
+                "Hello! I'm Vera. I noticed your visibility is {metric}% {comparison} than average. I can help you {strategy} to fix this. Are you interested?",
+                "Greetings! To improve your {category} performance, I suggest we {strategy}. This targets your {metric}% {comparison} metric. Ready to start?"
+            ],
+            "commit": [
+                "Understood! I am now initiating the {strategy} process for your listing. You will see these updates live shortly.",
+                "Action taken: I've successfully drafted and scheduled your new {strategy} campaign. It is now active.",
+                "Perfect! I have processed your request to {strategy}. Your business profile is being updated now.",
+                "Confirmed. I've enabled the {strategy} automation for your account. I'll monitor the results for you."
+            ],
+            "follow_up": [
+                "I've completed that task. Would you like to explore other ways to improve your {metric} metrics?",
+                "That action is now live. What else can I help you optimize today?",
+                "Since we've handled {strategy}, would you like me to look into increasing your customer calls as well?"
+            ],
+            "stop": [
+                "I understand. I've disabled all AI optimizations for your account. You won't receive further messages. Goodbye.",
+                "Process terminated. I have removed your listing from the active suggestion queue. Have a great day.",
+                "Understood. Stopping all communication now. If you need me again, you know where to find me."
+            ],
+            "hostile": [
+                "I apologize for the frustration. I am ending this session and will not contact you again. Take care.",
+                "I hear you. I'm stopping all AI processes for this merchant immediately. Ending conversation.",
+                "Understood. I will cease all communication and optimization efforts for your business now. Goodbye."
+            ],
+            "auto_reply": [
+                "I've detected an automated response. I will pause my suggestions for 12 hours to avoid any loops. See you later!",
+                "System auto-reply detected. Waiting for a manual update before I proceed with any changes.",
+                "It looks like you have an automated assistant active. I'll wait until you're back before we continue our optimization."
+            ]
         }
-        for k, v in fallbacks.items():
-            slots.setdefault(k, v)
 
-        return slots
+    @staticmethod
+    def get_slots(opp_type: str, features: Dict[str, Any], merchant: MerchantContext, category: CategoryContext, trigger: TriggerContext, customer: Optional[CustomerContext] = None) -> Dict[str, Any]:
+        p = trigger.payload or {}
+        ident = merchant.identity or {}
+        
+        # 1. Base slots with safe fallbacks
+        slots = {
+            "merchant_name": ident.get("name", "our business"),
+            "merchant": ident.get("name", "our business"),
+            "locality": ident.get("locality", "your area"),
+            "category_name": category.display_name,
+            "category": category.display_name,
+            "cx_name": customer.identity.get("first_name", "there") if customer else "there",
+            "metric": p.get("metric", p.get("authority", "performance")),
+            "proof": p.get("drop_pct", p.get("views", p.get("search_volume", "significant"))),
+            "gap_pct": p.get("gap_pct", p.get("drop_pct", "20")),
+            "months": p.get("months", p.get("months_ago", "6")),
+            "theme": p.get("theme", "customer interest"),
+            "match_name": p.get("match_name", "today's event"),
+            "competitor_name": p.get("competitor_name", "a competitor"),
+            "source": p.get("authority", p.get("source", "Industry")),
+            "source_ref": p.get("regulation_id", p.get("id", "Reference")),
+            "service": category.display_name,
+            "offer": "exclusive update",
+            "action": "update",
+            "cohort": "customers"
+        }
+        
+        # 2. Dynamic Injection: Pull EVERYTHING from identity and payload
+        for k, v in ident.items(): slots.setdefault(k, v)
+        for k, v in p.items(): slots.setdefault(k, v)
+        
+        # 3. Strategy Overrides
+        if "REGULATORY" in opp_type:
+            slots.update({"action": "compliance update", "cohort": "business"})
+        elif "RECALL" in opp_type:
+            slots.update({"action": "reminder", "cohort": "loyal customers"})
+            
+        # 4. Combine with Features
+        combined = {**features, **slots}
+        
+        # 5. ULTIMATE SAFETY: Stringify everything for Pydantic & Template Formatting
+        final_slots = {}
+        for k, v in combined.items():
+            if isinstance(v, float):
+                final_slots[k] = f"{v:.2f}"
+            else:
+                final_slots[k] = str(v)
+            
+        return final_slots

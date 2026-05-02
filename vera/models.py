@@ -114,3 +114,8 @@ class ReplyResponse(BaseModel):
     cta: Optional[str] = None
     wait_seconds: Optional[int] = None
     rationale: str
+
+class Opportunity(BaseModel):
+    type: str
+    confidence: float
+    priority: int

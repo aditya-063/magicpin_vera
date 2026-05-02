@@ -1,3 +1,4 @@
+import os
 import time
 from fastapi import FastAPI, HTTPException
 from vera.models import (
@@ -7,9 +8,14 @@ from vera.storage import VeraStorage
 from vera.engine import VeraEngine
 
 app = FastAPI(title="Vera AI Decision Engine")
-storage = VeraStorage()
+db_path = os.environ.get("DB_PATH", "vera.db")
+storage = VeraStorage(db_path)
 engine = VeraEngine(storage)
 START_TIME = time.time()
+
+@app.get("/")
+async def root():
+    return {"status": "Vera Engine is Live", "docs": "/docs"}
 
 @app.get("/v1/healthz")
 async def healthz():
@@ -56,7 +62,7 @@ async def push_context(ctx: ContextPush):
         "stored_at": ctx.delivered_at.isoformat()
     }
 
-@app.post("/v1/tick")
+@app.post("/v1/tick", response_model_exclude_none=True)
 async def tick(req: TickRequest) -> TickResponse:
     try:
         return engine.process_tick(req.now, req.available_triggers)
@@ -65,12 +71,11 @@ async def tick(req: TickRequest) -> TickResponse:
         print(f"Error in tick: {e}")
         return TickResponse(actions=[])
 
-@app.post("/v1/reply")
+@app.post("/v1/reply", response_model_exclude_none=True)
 async def reply(req: ReplyRequest) -> ReplyResponse:
     return engine.process_reply(req.conversation_id, req.message, req.turn_number)
 
 if __name__ == "__main__":
     import uvicorn
-    import os
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)

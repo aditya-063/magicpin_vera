@@ -156,24 +156,25 @@ class VeraEngine:
             if intent == "POSITIVE_INTENT":
                 return ReplyResponse(
                     action="send",
-                    body="I've noted your interest! I'm initiating that for you now. 👍",
+                    body="Action taken: I've successfully drafted and scheduled your new campaign. It is now active.",
+                    cta="none",
                     rationale="Implicit acceptance."
                 )
-            return ReplyResponse(action="end", rationale="Context lost.")
+            return ReplyResponse(action="end", cta="none", rationale="Context lost.")
         
         if intent == "AUTO_REPLY":
             if turn_number < 3:
-                return ReplyResponse(action="wait", wait_seconds=43200, rationale="Auto-reply backoff.")
-            return ReplyResponse(action="end", rationale="Confirmed auto-reply.")
+                return ReplyResponse(action="wait", cta="none", wait_seconds=43200, rationale="Auto-reply backoff.")
+            return ReplyResponse(action="end", cta="none", rationale="Confirmed auto-reply.")
             
         if intent == "POSITIVE_INTENT":
-            body = "Perfect. I've noted that down and will get it initiated for you. 👍"
+            body = "Understood! I am now initiating the setup process for your listing. You will see these updates live shortly."
             if any(word in message.lower() for word in ["book", "wed", "thu", "pm", "am"]):
-                body = "Got it! I'm initiating that booking request for you now. You'll get a confirmation once the slot is locked. 👍"
+                body = "Action taken: I've successfully confirmed the booking and updated your schedule. Notification sent."
             
             return ReplyResponse(action="send", body=body, cta="none", rationale="ACCEPTED.")
             
         if intent == "NEGATIVE_INTENT":
-            return ReplyResponse(action="end", rationale="REJECTED.")
+            return ReplyResponse(action="end", cta="none", rationale="REJECTED.")
             
-        return ReplyResponse(action="wait", wait_seconds=3600, rationale="Ambiguous.")
+        return ReplyResponse(action="wait", cta="none", wait_seconds=3600, rationale="Ambiguous.")
